@@ -324,6 +324,12 @@ import Layout from '../../layouts/Layout.astro';
     gap: 1rem;
   }
 
+  @media (max-width: 560px) {
+    .row {
+      grid-template-columns: 1fr;
+    }
+  }
+
   input, textarea, select {
     font-family: var(--font-body);
     background: var(--surface);

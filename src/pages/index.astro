@@ -40,14 +40,18 @@ const jsonLd = reel
     <img src="/images/DWYSKI_LOVE.png" alt={site.name} />
   </div>
 
-  <main class="main">
-    {reel && <VideoPlayer platform={reel.data.platform} videoId={reel.data.videoId} title={reel.data.title} />}
+  <main class="main container">
+    <div class="grid">
+      <div class="col-12">
+        {reel && <VideoPlayer platform={reel.data.platform} videoId={reel.data.videoId} title={reel.data.title} />}
+      </div>
 
-    <section class="intro">
-      <h1>{site.role}</h1>
-      <p>{site.introCopy}</p>
-      <a class="cta" href="/videos">View the work &nbsp;→</a>
-    </section>
+      <section class="intro col-12">
+        <h1>{site.role}</h1>
+        <p>{site.introCopy}</p>
+        <a class="cta" href="/videos">View the work &nbsp;→</a>
+      </section>
+    </div>
   </main>
   <SiteFooter />
 </Layout>
@@ -69,13 +73,10 @@ const jsonLd = reel
   }
 
   .main {
-    max-width: var(--content-width);
-    margin: 0 auto;
-    padding: 0 clamp(1.25rem, 4vw, 2rem) 2rem;
+    padding-bottom: 2rem;
   }
 
   .intro {
-    max-width: 62ch;
     margin: 3rem 0 1rem;
   }
 

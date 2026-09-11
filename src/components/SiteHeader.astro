@@ -10,7 +10,7 @@ const path = Astro.url.pathname;
 const isActive = (href: string) => path === href || (href !== '/' && path.startsWith(href));
 ---
 
-<header class="header">
+<header class="header container">
   {hideLogo ? (
     <span aria-hidden="true"></span>
   ) : (
@@ -27,9 +27,8 @@ const isActive = (href: string) => path === href || (href !== '/' && path.starts
 
 <style>
   .header {
-    max-width: var(--content-width);
-    margin: 0 auto;
-    padding: 2rem clamp(1.25rem, 4vw, 2rem) 1.5rem;
+    padding-top: 2rem;
+    padding-bottom: 1.5rem;
     display: flex;
     align-items: baseline;
     justify-content: space-between;

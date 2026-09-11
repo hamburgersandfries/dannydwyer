@@ -3,10 +3,14 @@ title: "Contact"
 summary: "Get in touch about narrative, commercial, or documentary cinematography work."
 ---
 
-I'm based in Los Angeles and available for narrative, commercial, and
-documentary projects both locally and on location. The best way to reach me
-is by email — I try to respond within a day or two.
+I believe that the best work comes from a collaborative environment, where
+everyone involved feels comfortable sharing their ideas and being
+themselves. Over the years, I've been lucky enough to work as a Director of
+Photography with some pretty amazing people, from celebrities to our
+everyday heroes with inspiring stories to tell. My love for storytelling is
+never limited. I approach every project, big or small, with the same level
+of creativity, enthusiasm, and professionalism. Finding and executing the
+perfect shot to convey the emotion and essence of each story is what drives
+me. I'm always looking for innovative ways to showcase stories that matter.
 
-For prep-heavy projects, it helps to include your shoot dates, general
-location, and a link to a script, treatment, or reference deck if you have
-one.
+Give me a shout, let's make something awesome together!

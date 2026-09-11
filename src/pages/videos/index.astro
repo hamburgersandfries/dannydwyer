@@ -36,7 +36,7 @@ const jsonLd = [
   jsonLd={jsonLd}
 >
   <SiteHeader />
-  <main class="main">
+  <main class="main container">
     <h1>Work</h1>
     <p class="count">{videos.length} projects</p>
 
@@ -118,9 +118,8 @@ const jsonLd = [
 
 <style>
   .main {
-    max-width: var(--content-width);
-    margin: 0 auto;
-    padding: 1rem clamp(1.25rem, 4vw, 2rem) 3rem;
+    padding-top: 1rem;
+    padding-bottom: 3rem;
   }
 
   h1 {
@@ -195,7 +194,7 @@ const jsonLd = [
   #video-list {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 2rem 1.75rem;
+    gap: 2rem var(--gutter);
     padding-top: 1.5rem;
   }
 

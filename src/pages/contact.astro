@@ -19,7 +19,7 @@ const { Content } = await page.render();
 
     <div class="details">
       <a class="email" href={`mailto:${site.email}`}>{site.email}</a>
-      <span class="location">{site.location}</span>
+      {site.location && <span class="location">{site.location}</span>}
     </div>
   </main>
   <SiteFooter />

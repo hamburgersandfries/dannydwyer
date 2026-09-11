@@ -2,15 +2,22 @@
 import { site } from '../data/site';
 const year = new Date().getFullYear();
 const socialLinks = Object.entries(site.socials).filter(([, url]) => url);
+
+// A few platform names have a correct brand casing that plain CSS
+// text-transform: capitalize can't produce.
+const displayNames: Record<string, string> = {
+  imdb: 'IMDb',
+  linkedin: 'LinkedIn',
+};
 ---
 
 <footer class="footer">
-  <div class="footer-inner">
+  <div class="footer-inner container">
     <span>&copy; {year} {site.name}</span>
     <div class="links">
-      <a href={`mailto:${site.email}`}>{site.email}</a>
+      <a class="email" href={`mailto:${site.email}`}>{site.email}</a>
       {socialLinks.map(([name, url]) => (
-        <a href={url} target="_blank" rel="noopener noreferrer">{name}</a>
+        <a class="social" href={url} target="_blank" rel="noopener noreferrer">{displayNames[name] ?? name}</a>
       ))}
     </div>
   </div>
@@ -23,9 +30,8 @@ const socialLinks = Object.entries(site.socials).filter(([, url]) => url);
   }
 
   .footer-inner {
-    max-width: var(--content-width);
-    margin: 0 auto;
-    padding: 1.5rem clamp(1.25rem, 4vw, 2rem);
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -38,6 +44,9 @@ const socialLinks = Object.entries(site.socials).filter(([, url]) => url);
   .links {
     display: flex;
     gap: 1.5rem;
+  }
+
+  .links .social {
     text-transform: capitalize;
   }
 

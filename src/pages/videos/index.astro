@@ -47,11 +47,35 @@ const jsonLd = [
         placeholder="Search by title, client, or keyword…"
         aria-label="Search videos"
       />
-      <div class="filters" id="filters">
-        <button class="chip active" data-tag="all">All</button>
-        {allTags.map((tag) => (
-          <button class="chip" data-tag={tag.toLowerCase()}>{tag}</button>
-        ))}
+
+      <div class="filter-row">
+        <button
+          type="button"
+          id="filters-toggle"
+          class="filters-toggle"
+          aria-expanded="false"
+          aria-controls="filters-panel"
+        >
+          Filters
+          <span id="filters-badge" class="badge" hidden>0</span>
+        </button>
+
+        <div id="selected-chips" class="selected-chips"></div>
+      </div>
+
+      <div id="filters-panel" class="filters-panel" hidden>
+        <div class="filters-panel-tags">
+          {allTags.map((tag) => (
+            <label class="tag-option">
+              <input type="checkbox" name="tag" value={tag.toLowerCase()} />
+              <span>{tag}</span>
+            </label>
+          ))}
+        </div>
+        <div class="filters-panel-actions">
+          <button type="button" id="filters-clear" class="btn btn-ghost">Clear All</button>
+          <button type="button" id="filters-apply" class="btn btn-solid">Apply</button>
+        </div>
       </div>
     </div>
 
@@ -75,16 +99,44 @@ const jsonLd = [
 
 <script>
   const searchInput = document.getElementById('search') as HTMLInputElement;
-  const filters = document.getElementById('filters');
   const rows = Array.from(document.querySelectorAll('#video-list .card')) as HTMLElement[];
   const emptyState = document.getElementById('empty-state') as HTMLElement;
 
-  let activeTag = new URLSearchParams(location.search).get('tag') ?? 'all';
-  if (activeTag !== 'all') {
-    filters?.querySelectorAll('.chip').forEach((c) => {
-      const el = c as HTMLElement;
-      el.classList.toggle('active', el.dataset.tag === activeTag);
+  const toggleBtn = document.getElementById('filters-toggle') as HTMLButtonElement;
+  const badge = document.getElementById('filters-badge') as HTMLElement;
+  const selectedChips = document.getElementById('selected-chips') as HTMLElement;
+  const panel = document.getElementById('filters-panel') as HTMLElement;
+  const checkboxes = Array.from(panel.querySelectorAll('input[type="checkbox"]')) as HTMLInputElement[];
+  const clearBtn = document.getElementById('filters-clear') as HTMLButtonElement;
+  const applyBtn = document.getElementById('filters-apply') as HTMLButtonElement;
+
+  // The applied (committed) set of selected tags — what actually drives
+  // filtering and the chip row. Checkbox state inside the panel is only
+  // "pending" until Apply commits it (or Clear All zeroes everything).
+  let selected = new Set<string>();
+
+  const initialTag = new URLSearchParams(location.search).get('tag');
+  if (initialTag) selected.add(initialTag);
+
+  function syncCheckboxesToSelected() {
+    checkboxes.forEach((cb) => {
+      cb.checked = selected.has(cb.value);
     });
+  }
+
+  function renderChips() {
+    selectedChips.innerHTML = '';
+    selected.forEach((tag) => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'selected-chip';
+      chip.dataset.tag = tag;
+      chip.innerHTML = `${tag} <span aria-hidden="true">&times;</span>`;
+      chip.setAttribute('aria-label', `Remove ${tag} filter`);
+      selectedChips.appendChild(chip);
+    });
+    badge.hidden = selected.size === 0;
+    badge.textContent = String(selected.size);
   }
 
   function applyFilters() {
@@ -93,9 +145,9 @@ const jsonLd = [
 
     rows.forEach((row) => {
       const rowTags = row.dataset.tags?.split('|') ?? [];
-      const matchesTag = activeTag === 'all' || rowTags.includes(activeTag);
+      const matchesTags = selected.size === 0 || [...selected].some((tag) => rowTags.includes(tag));
       const matchesQuery = !query || (row.dataset.search ?? '').includes(query);
-      const show = matchesTag && matchesQuery;
+      const show = matchesTags && matchesQuery;
       row.style.display = show ? '' : 'none';
       if (show) visibleCount++;
     });
@@ -103,16 +155,53 @@ const jsonLd = [
     emptyState.hidden = visibleCount > 0;
   }
 
-  filters?.addEventListener('click', (e) => {
-    const btn = (e.target as HTMLElement).closest('.chip') as HTMLButtonElement | null;
-    if (!btn) return;
+  function openPanel() {
+    syncCheckboxesToSelected();
+    panel.hidden = false;
+    toggleBtn.setAttribute('aria-expanded', 'true');
+  }
 
-    filters.querySelectorAll('.chip').forEach((c) => c.classList.remove('active'));
-    btn.classList.add('active');
-    activeTag = btn.dataset.tag ?? 'all';
+  function closePanel() {
+    panel.hidden = true;
+    toggleBtn.setAttribute('aria-expanded', 'false');
+  }
+
+  toggleBtn.addEventListener('click', () => {
+    if (panel.hidden) openPanel();
+    else closePanel();
+  });
+
+  applyBtn.addEventListener('click', () => {
+    selected = new Set(checkboxes.filter((cb) => cb.checked).map((cb) => cb.value));
+    renderChips();
+    applyFilters();
+    closePanel();
+  });
+
+  clearBtn.addEventListener('click', () => {
+    checkboxes.forEach((cb) => (cb.checked = false));
+    selected = new Set();
+    renderChips();
+    applyFilters();
+    closePanel();
+  });
+
+  selectedChips.addEventListener('click', (e) => {
+    const chip = (e.target as HTMLElement).closest('.selected-chip') as HTMLElement | null;
+    if (!chip?.dataset.tag) return;
+    selected.delete(chip.dataset.tag);
+    renderChips();
     applyFilters();
   });
 
+  document.addEventListener('click', (e) => {
+    if (panel.hidden) return;
+    const target = e.target as Node;
+    if (!panel.contains(target) && !toggleBtn.contains(target)) closePanel();
+  });
+
+  renderChips();
+  applyFilters();
   searchInput?.addEventListener('input', applyFilters);
 </script>
 
@@ -157,32 +246,148 @@ const jsonLd = [
     outline-offset: 1px;
   }
 
-  .filters {
+  .filter-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .filters-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+  }
+
+  .filters-toggle:hover {
+    border-color: var(--text-muted);
+  }
+
+  .filters-toggle[aria-expanded='true'] {
+    border-color: var(--accent);
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.2rem;
+    height: 1.2rem;
+    padding: 0 0.35rem;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
+  .badge[hidden] {
+    display: none;
+  }
+
+  .selected-chips {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
   }
 
-  .chip {
+  .selected-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
     font-family: var(--font-body);
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    background: none;
-    border: 1px solid var(--hairline);
-    padding: 0.4rem 0.9rem;
+    font-size: 0.8rem;
+    color: var(--on-accent);
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 0.3rem 0.7rem;
     cursor: pointer;
-    transition: border-color 0.15s ease, color 0.15s ease;
   }
 
-  .chip:hover {
+  .selected-chip:hover {
+    background: var(--accent-dim);
+    border-color: var(--accent-dim);
+  }
+
+  .selected-chip span {
+    font-size: 0.95rem;
+    line-height: 1;
+  }
+
+  .filters-panel {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    padding: 1.25rem;
+  }
+
+  .filters-panel-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem 1.25rem;
+    max-height: 260px;
+    overflow-y: auto;
+    padding-bottom: 1rem;
+  }
+
+  .tag-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+
+  .tag-option input {
+    accent-color: var(--accent);
+  }
+
+  .filters-panel-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--hairline);
+  }
+
+  .btn {
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.55rem 1.2rem;
+    cursor: pointer;
+    border: 1px solid transparent;
+  }
+
+  .btn-ghost {
+    background: none;
+    border-color: var(--hairline);
+    color: var(--text-muted);
+  }
+
+  .btn-ghost:hover {
     color: var(--text);
     border-color: var(--text-muted);
   }
 
-  .chip.active {
-    color: var(--on-accent);
+  .btn-solid {
     background: var(--accent);
     border-color: var(--accent);
+    color: var(--on-accent);
+  }
+
+  .btn-solid:hover {
+    background: var(--accent-dim);
+    border-color: var(--accent-dim);
   }
 
   #empty-state {

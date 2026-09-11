@@ -3,6 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import SiteHeader from '../components/SiteHeader.astro';
 import SiteFooter from '../components/SiteFooter.astro';
 import VideoPlayer from '../components/VideoPlayer.astro';
+import VideoCard from '../components/VideoCard.astro';
 import { getCollection } from 'astro:content';
 import { site } from '../data/site';
 import { getEmbedUrl, getThumbnailUrl } from '../lib/video';
@@ -12,6 +13,12 @@ const reel =
   videos.find((v) => v.data.urlSlug === site.homeReelSlug) ??
   videos.find((v) => v.data.featured) ??
   videos[0];
+
+const FEATURED_SLUGS = ['ryan-gosling-mens-health', 'zoe-kravitz-harpers-bazaar', 'bored-final-dwyer'];
+const featured = FEATURED_SLUGS.map((slug) => videos.find((v) => v.data.urlSlug === slug)).filter(
+  (v): v is NonNullable<typeof v> => Boolean(v)
+);
+const featuredThumbnails = await Promise.all(featured.map((v) => getThumbnailUrl(v.data)));
 
 const jsonLd = reel
   ? [
@@ -51,6 +58,26 @@ const jsonLd = reel
         <p>{site.introCopy}</p>
         <a class="cta" href="/videos">View the work &nbsp;→</a>
       </section>
+
+      {featured.length > 0 && (
+        <section class="featured col-12" aria-label="Featured work">
+          <h2>Featured Work</h2>
+          <div class="grid featured-grid">
+            {featured.map((v, i) => (
+              <div class="col-4">
+                <VideoCard
+                  slug={v.data.urlSlug}
+                  title={v.data.title}
+                  summary={v.data.summary}
+                  tags={v.data.tags}
+                  thumbnailUrl={featuredThumbnails[i]}
+                  uploadDate={v.data.uploadDate}
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   </main>
   <SiteFooter />
@@ -97,5 +124,21 @@ const jsonLd = reel
     border-bottom: 1px solid var(--accent);
     color: var(--accent);
     padding-bottom: 0.15rem;
+  }
+
+  .featured {
+    margin: 1.5rem 0 3rem;
+  }
+
+  .featured h2 {
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--tag-muted);
+    margin-bottom: 1.25rem;
+  }
+
+  .featured-grid {
+    row-gap: 2rem;
   }
 </style>

@@ -65,7 +65,7 @@ const personSchema = {
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
   </head>
@@ -76,19 +76,20 @@ const personSchema = {
 
 <style is:global>
   :root {
-    /* Color tokens — grounded in a screening room / exposed film base,
-       not a generic dark-mode palette. */
-    --bg: #0e0d0c;
-    --surface: #17150f;
-    --text: #ede9e0;
-    --text-muted: #a39d8d;
-    --accent: #c9a227; /* projector-bulb brass, used only for interactive states */
-    --accent-dim: #8a7020;
-    --hairline: #2a2620;
-    --tag-muted: #5b6b63;
+    /* Color tokens — light powder-blue ground with a dark teal ink and a
+       coral accent, matching the DWYSKI wordmark's palette. */
+    --bg: #dbe7ea;
+    --surface: #cddce0;
+    --text: #1f4547;
+    --text-muted: #3f6d6e;
+    --accent: #d97662; /* coral, used for active/interactive states */
+    --accent-dim: #b85c4a;
+    --on-accent: #fdf6f4; /* text color for content sitting on top of --accent */
+    --hairline: #bdd0d4;
+    --tag-muted: #5f8385;
 
-    --font-display: 'Fraunces', Georgia, serif;
-    --font-body: 'Inter', -apple-system, sans-serif;
+    --font-display: 'Poppins', -apple-system, sans-serif;
+    --font-body: 'Poppins', -apple-system, sans-serif;
 
     --content-width: 1100px;
   }
@@ -113,7 +114,7 @@ const personSchema = {
 
   h1, h2, h3 {
     font-family: var(--font-display);
-    font-weight: 500;
+    font-weight: 700;
     line-height: 1.15;
     margin: 0;
   }
@@ -132,7 +133,7 @@ const personSchema = {
 
   ::selection {
     background: var(--accent-dim);
-    color: var(--bg);
+    color: var(--on-accent);
   }
 
   @media (prefers-reduced-motion: reduce) {

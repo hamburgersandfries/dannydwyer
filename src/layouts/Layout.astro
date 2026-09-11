@@ -112,6 +112,9 @@ const personSchema = {
     font-size: 16px;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
+    /* Safety net: a flex/grid row that forgets to wrap on narrow screens
+       should never be able to push the whole page into horizontal scroll. */
+    overflow-x: hidden;
   }
 
   h1, h2, h3 {

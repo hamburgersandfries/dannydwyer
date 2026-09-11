@@ -1,11 +1,23 @@
 ---
 import { site } from '../data/site';
+
+interface Props {
+  hideLogo?: boolean;
+}
+const { hideLogo = false } = Astro.props;
+
 const path = Astro.url.pathname;
 const isActive = (href: string) => path === href || (href !== '/' && path.startsWith(href));
 ---
 
 <header class="header">
-  <a class="wordmark" href="/">{site.name}</a>
+  {hideLogo ? (
+    <span aria-hidden="true"></span>
+  ) : (
+    <a class="wordmark" href="/">
+      <img src="/images/DWYSKI_LOVE.png" alt={site.name} />
+    </a>
+  )}
   <nav class="nav">
     <a href="/" class:list={{ active: isActive('/') && path === '/' }}>Home</a>
     <a href="/videos" class:list={{ active: isActive('/videos') }}>Work</a>
@@ -26,9 +38,14 @@ const isActive = (href: string) => path === href || (href !== '/' && path.starts
   }
 
   .wordmark {
-    font-family: var(--font-display);
-    font-size: 1.15rem;
-    letter-spacing: 0.01em;
+    display: block;
+    line-height: 0;
+  }
+
+  .wordmark img {
+    height: 26px;
+    width: auto;
+    display: block;
   }
 
   .nav {

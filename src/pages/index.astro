@@ -5,6 +5,7 @@ import SiteFooter from '../components/SiteFooter.astro';
 import VideoPlayer from '../components/VideoPlayer.astro';
 import { getCollection } from 'astro:content';
 import { site } from '../data/site';
+import { getEmbedUrl, getThumbnailUrl } from '../lib/video';
 
 const videos = await getCollection('videos');
 const reel =
@@ -19,15 +20,10 @@ const jsonLd = reel
         '@type': 'VideoObject',
         name: reel.data.title,
         description: reel.data.summary,
-        thumbnailUrl:
-          reel.data.thumbnailUrl ??
-          (reel.data.platform === 'youtube' ? `https://i.ytimg.com/vi/${reel.data.videoId}/hqdefault.jpg` : undefined),
+        thumbnailUrl: await getThumbnailUrl(reel.data),
         uploadDate: reel.data.uploadDate,
         duration: reel.data.durationISO,
-        embedUrl:
-          reel.data.platform === 'vimeo'
-            ? `https://player.vimeo.com/video/${reel.data.videoId}`
-            : `https://www.youtube-nocookie.com/embed/${reel.data.videoId}`,
+        embedUrl: getEmbedUrl(reel.data),
       },
     ]
   : [];

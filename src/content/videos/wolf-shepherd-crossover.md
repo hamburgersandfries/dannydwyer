@@ -1,0 +1,16 @@
+---
+title: "Wolf & Shepherd — Crossover"
+summary: "15-second commercial for Wolf & Shepherd's Crossover shoe style."
+platform: "vimeo"
+videoId: "478342177"
+role: "Director of Photography"
+client: "Wolf & Shepherd"
+projectName: "Crossover"
+uploadDate: "2017-08-01"
+tags: ["commercial", "product", "fashion"]
+urlSlug: "wolf-shepherd-crossover"
+featured: false
+stills: []
+---
+
+Product spot for Wolf & Shepherd's Crossover style, cut for a 15-second 16x9 placement.

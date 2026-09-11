@@ -4,6 +4,7 @@ import SiteHeader from '../../components/SiteHeader.astro';
 import SiteFooter from '../../components/SiteFooter.astro';
 import VideoPlayer from '../../components/VideoPlayer.astro';
 import { getCollection, type CollectionEntry } from 'astro:content';
+import { getEmbedUrl, getThumbnailUrl } from '../../lib/video';
 
 export async function getStaticPaths() {
   const videos = await getCollection('videos');
@@ -21,13 +22,8 @@ const { video } = Astro.props;
 const { Content } = await video.render();
 const d = video.data;
 
-const embedUrl =
-  d.platform === 'vimeo'
-    ? `https://player.vimeo.com/video/${d.videoId}`
-    : `https://www.youtube-nocookie.com/embed/${d.videoId}`;
-
-const thumbnailUrl =
-  d.thumbnailUrl ?? (d.platform === 'youtube' ? `https://i.ytimg.com/vi/${d.videoId}/hqdefault.jpg` : undefined);
+const embedUrl = getEmbedUrl(d);
+const thumbnailUrl = await getThumbnailUrl(d);
 
 const pageUrl = new URL(`/videos/${d.urlSlug}`, Astro.site).toString();
 

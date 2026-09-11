@@ -4,10 +4,13 @@ import SiteHeader from '../../components/SiteHeader.astro';
 import SiteFooter from '../../components/SiteFooter.astro';
 import VideoRow from '../../components/VideoRow.astro';
 import { getCollection } from 'astro:content';
+import { getThumbnailUrl } from '../../lib/video';
 
 const videos = (await getCollection('videos')).sort(
   (a, b) => new Date(b.data.uploadDate).getTime() - new Date(a.data.uploadDate).getTime()
 );
+
+const thumbnails = await Promise.all(videos.map((v) => getThumbnailUrl(v.data)));
 
 const allTags = [...new Set(videos.flatMap((v) => v.data.tags))].sort();
 
@@ -53,15 +56,13 @@ const jsonLd = [
     </div>
 
     <div id="video-list">
-      {videos.map((v) => (
+      {videos.map((v, i) => (
         <VideoRow
           slug={v.data.urlSlug}
           title={v.data.title}
           summary={v.data.summary}
           tags={v.data.tags}
-          platform={v.data.platform}
-          videoId={v.data.videoId}
-          thumbnailUrl={v.data.thumbnailUrl}
+          thumbnailUrl={thumbnails[i]}
           uploadDate={v.data.uploadDate}
         />
       ))}

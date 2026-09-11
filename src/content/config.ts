@@ -37,6 +37,7 @@ const videos = defineCollection({
     tags: z.array(z.string()).default([]),
     urlSlug: z.string(), // controls the final URL: /videos/[slug]
     featured: z.boolean().default(false), // true = eligible to show as the home page reel
+    hidden: z.boolean().default(false), // true = still has its own page, but excluded from /videos and llms.txt (e.g. a temporary home-page reel)
   }),
 });
 

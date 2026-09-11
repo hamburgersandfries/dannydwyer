@@ -8,7 +8,7 @@ import { getCollection } from 'astro:content';
 import { site } from '../data/site';
 
 export const GET: APIRoute = async ({ site: astroSite }) => {
-  const videos = (await getCollection('videos')).sort(
+  const videos = (await getCollection('videos', (v) => !v.data.hidden)).sort(
     (a, b) => new Date(b.data.uploadDate).getTime() - new Date(a.data.uploadDate).getTime()
   );
   const base = astroSite?.toString().replace(/\/$/, '') ?? '';

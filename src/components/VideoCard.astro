@@ -13,13 +13,13 @@ const searchText = `${title} ${summary} ${tags.join(' ')}`.toLowerCase();
 ---
 
 <a
-  class="row"
+  class="card"
   href={`/videos/${slug}`}
   data-tags={tags.join('|').toLowerCase()}
   data-search={searchText}
 >
   <div class="thumb">
-    <img src={thumbnailUrl} alt="" loading="lazy" width="320" height="180" />
+    <img src={thumbnailUrl} alt="" loading="lazy" width="480" height="270" />
   </div>
   <div class="meta">
     <h3>{title}</h3>
@@ -32,18 +32,9 @@ const searchText = `${title} ${summary} ${tags.join(' ')}`.toLowerCase();
 </a>
 
 <style>
-  .row {
-    display: grid;
-    grid-template-columns: 200px 1fr;
-    gap: 1.5rem;
-    padding: 1.5rem 0;
-    border-bottom: 1px solid var(--hairline);
-  }
-
-  @media (max-width: 640px) {
-    .row {
-      grid-template-columns: 1fr;
-    }
+  .card {
+    display: flex;
+    flex-direction: column;
   }
 
   .thumb {
@@ -60,31 +51,35 @@ const searchText = `${title} ${summary} ${tags.join(' ')}`.toLowerCase();
     transition: filter 0.2s ease;
   }
 
-  .row:hover .thumb img {
+  .card:hover .thumb img {
     filter: grayscale(0);
   }
 
+  .meta {
+    padding-top: 0.85rem;
+  }
+
   .meta h3 {
-    font-size: 1.15rem;
+    font-size: 1rem;
+    line-height: 1.3;
     margin-bottom: 0.4rem;
   }
 
-  .row:hover h3 {
+  .card:hover h3 {
     color: var(--accent);
   }
 
   .summary {
     color: var(--text-muted);
-    font-size: 0.9rem;
-    margin: 0 0 0.75rem;
-    max-width: 60ch;
+    font-size: 0.85rem;
+    margin: 0 0 0.65rem;
   }
 
   .tags {
     display: flex;
     flex-wrap: wrap;
     gap: 0.6rem;
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     color: var(--tag-muted);
   }
 

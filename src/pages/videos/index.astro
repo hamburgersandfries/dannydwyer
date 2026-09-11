@@ -2,7 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import SiteHeader from '../../components/SiteHeader.astro';
 import SiteFooter from '../../components/SiteFooter.astro';
-import VideoRow from '../../components/VideoRow.astro';
+import VideoCard from '../../components/VideoCard.astro';
 import { getCollection } from 'astro:content';
 import { getThumbnailUrl } from '../../lib/video';
 
@@ -57,7 +57,7 @@ const jsonLd = [
 
     <div id="video-list">
       {videos.map((v, i) => (
-        <VideoRow
+        <VideoCard
           slug={v.data.urlSlug}
           title={v.data.title}
           summary={v.data.summary}
@@ -76,7 +76,7 @@ const jsonLd = [
 <script>
   const searchInput = document.getElementById('search') as HTMLInputElement;
   const filters = document.getElementById('filters');
-  const rows = Array.from(document.querySelectorAll('#video-list .row')) as HTMLElement[];
+  const rows = Array.from(document.querySelectorAll('#video-list .card')) as HTMLElement[];
   const emptyState = document.getElementById('empty-state') as HTMLElement;
 
   let activeTag = new URLSearchParams(location.search).get('tag') ?? 'all';
@@ -190,5 +190,24 @@ const jsonLd = [
     color: var(--text-muted);
     padding: 2rem 0;
     text-align: center;
+  }
+
+  #video-list {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem 1.75rem;
+    padding-top: 1.5rem;
+  }
+
+  @media (max-width: 860px) {
+    #video-list {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 560px) {
+    #video-list {
+      grid-template-columns: 1fr;
+    }
   }
 </style>

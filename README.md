@@ -7,8 +7,8 @@ video hosting, no storage bill — with search + tag filtering on the work
 page and a still-image gallery on each video's own page. There's a small
 custom admin panel for adding and editing content without touching code.
 
-**Ongoing cost: $0/month.** Static hosting on Cloudflare Pages' free tier,
-using a domain you already own.
+**Ongoing cost: $0/month.** Static hosting on Cloudflare's free tier, using a
+domain you already own.
 
 ---
 
@@ -30,9 +30,11 @@ src/
     contact.astro         ← Contact page
     admin/index.astro     ← Content admin panel (see section 5)
     llms.txt.ts           ← Plain-text site index for AI answer engines (GEO)
-functions/
-  api/videos.ts          ← Cloudflare Pages Function: admin writes video files
-  api/settings.ts        ← Cloudflare Pages Function: admin writes settings/contact
+worker/
+  index.ts               ← Cloudflare Worker: handles /api/videos and /api/settings
+                            (the admin panel's write endpoints); everything else is
+                            served as a static file from dist/ automatically
+wrangler.jsonc            ← Cloudflare Worker + static-assets config
 ```
 
 ### Video content model
@@ -99,31 +101,27 @@ Visit `http://localhost:4321`.
    leave them as a reference for the file format and delete them once you've
    added real ones through the admin panel.
 
-## 4. Deploy: GitHub + Cloudflare Pages
+## 4. Deploy: GitHub + Cloudflare
 
-**a. Push this project to GitHub**
+This repo is already on GitHub. Cloudflare's dashboard has moved away from
+the old "Pages" product name — new git-connected sites now go through
+**Workers**, deployed as a Worker with static assets (that's what
+`wrangler.jsonc` and `worker/index.ts` in this repo are for). Functionally
+it's the same free static hosting; only the dashboard labels changed.
 
-```bash
-git init
-git add .
-git commit -m "Initial site"
-gh repo create your-username/dp-portfolio --private --source=. --push
-```
+**Connect the repo**
 
-(Or create the repo on github.com first and follow its "push an existing
-repo" instructions.)
-
-**b. Connect Cloudflare Pages to the repo**
-
-1. Go to the [Cloudflare dashboard](https://dash.cloudflare.com) → **Workers
-   & Pages** → **Create** → **Pages** → **Connect to Git**.
-2. Select your `dp-portfolio` repo.
-3. Build settings:
-   - Framework preset: **Astro**
-   - Build command: `npm run build`
-   - Build output directory: `dist`
-4. Click **Save and Deploy**. Cloudflare will give you a temporary
-   `*.pages.dev` URL — check that it works before moving on.
+1. Go to the [Cloudflare dashboard](https://dash.cloudflare.com) → click
+   **Create application** (or **Compute (Workers)** → **Create**) →
+   **Import a repository** / **Connect to Git**.
+2. Select the `dannydwyer` repo.
+3. On the **Set up your application** screen:
+   - **Build command**: `npm run build`
+   - **Deploy command**: `npx wrangler deploy` (this is the default — leave
+     it as-is; `wrangler.jsonc` tells it to serve `dist/` as static assets
+     and route `/api/*` to `worker/index.ts`)
+4. Click **Deploy**. Cloudflare gives you a temporary `*.workers.dev` URL —
+   check that it works before moving on.
 
 ## 5. Point your GoDaddy domain at Cloudflare
 
@@ -139,37 +137,36 @@ managed, which is free.
    nameservers. Save.
 4. This can take anywhere from a few minutes to a few hours to propagate.
    Cloudflare's dashboard will show the domain as "Active" once it's done.
-5. Back in **Workers & Pages** → your project → **Custom domains** → add your
-   domain (and `www` if you want both). Cloudflare issues free SSL
-   automatically.
+5. Back in your Worker's project page → **Settings** → **Domains & Routes**
+   → add your domain (and `www` if you want both). Cloudflare issues free
+   SSL automatically.
 
 ## 6. Set up the admin panel
 
 The admin panel at `/admin` commits changes directly to your GitHub repo,
-which triggers an automatic Cloudflare Pages redeploy (live in about a
-minute). It has no login form of its own — access is controlled entirely by
-**Cloudflare Access**, which is free for up to 50 users.
+which triggers an automatic redeploy (live in about a minute). It has no
+login form of its own — access is controlled entirely by **Cloudflare
+Access**, which is free for up to 50 users.
 
 **a. Create a GitHub token so the admin panel can write files**
 
 1. On GitHub: **Settings** → **Developer settings** → **Personal access
    tokens** → **Fine-grained tokens** → **Generate new token**.
-2. Scope it to only the `dp-portfolio` repo, with **Contents: Read and
+2. Scope it to only the `dannydwyer` repo, with **Contents: Read and
    write** permission. Nothing else.
 3. Copy the token — you won't see it again.
 
-**b. Add environment variables to Cloudflare Pages**
+**b. Add environment variables to the Worker**
 
-In your Pages project → **Settings** → **Environment variables**, add (for
-both Production and Preview):
+In your Worker's project → **Settings** → **Variables and Secrets**, add:
 
-| Variable | Value |
-|---|---|
-| `GITHUB_TOKEN` | the token from step (a) |
-| `GITHUB_REPO` | `your-username/dp-portfolio` |
-| `GITHUB_BRANCH` | `main` |
+| Variable | Value | Type |
+|---|---|---|
+| `GITHUB_TOKEN` | the token from step (a) | Secret |
+| `GITHUB_REPO` | `hamburgersandfries/dannydwyer` | Text |
+| `GITHUB_BRANCH` | `main` | Text |
 
-Redeploy after saving so the Functions pick up the new variables.
+Redeploy after saving so `worker/index.ts` picks up the new variables.
 
 **c. Gate `/admin` with Cloudflare Access (your two users)**
 

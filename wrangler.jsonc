@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // This project deploys as a Cloudflare Worker with static assets (the
+  // current unified replacement for what used to be "Cloudflare Pages").
+  // `npm run build` produces the static site in dist/; Cloudflare serves
+  // those files directly for any request that matches one, and only
+  // invokes worker/index.ts for everything else (in practice, just
+  // /api/videos and /api/settings — the admin panel's write endpoints).
+  "name": "dannydwyer",
+  "compatibility_date": "2025-01-01",
+  "main": "worker/index.ts",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS"
+  }
+}

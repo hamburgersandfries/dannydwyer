@@ -1,0 +1,193 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import SiteHeader from '../../components/SiteHeader.astro';
+import SiteFooter from '../../components/SiteFooter.astro';
+import VideoRow from '../../components/VideoRow.astro';
+import { getCollection } from 'astro:content';
+
+const videos = (await getCollection('videos')).sort(
+  (a, b) => new Date(b.data.uploadDate).getTime() - new Date(a.data.uploadDate).getTime()
+);
+
+const allTags = [...new Set(videos.flatMap((v) => v.data.tags))].sort();
+
+// ItemList structured data — gives search engines and AI answer engines a
+// clean, complete manifest of every piece of work on this page.
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    itemListElement: videos.map((v, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      url: new URL(`/videos/${v.data.urlSlug}`, Astro.site).toString(),
+      name: v.data.title,
+    })),
+  },
+];
+---
+
+<Layout
+  title="Work"
+  description={`Selected narrative, commercial, and documentary cinematography — ${videos.length} projects, searchable by tag, role, and format.`}
+  jsonLd={jsonLd}
+>
+  <SiteHeader />
+  <main class="main">
+    <h1>Work</h1>
+    <p class="count">{videos.length} projects</p>
+
+    <div class="controls">
+      <input
+        id="search"
+        type="search"
+        placeholder="Search by title, client, or keyword…"
+        aria-label="Search videos"
+      />
+      <div class="filters" id="filters">
+        <button class="chip active" data-tag="all">All</button>
+        {allTags.map((tag) => (
+          <button class="chip" data-tag={tag.toLowerCase()}>{tag}</button>
+        ))}
+      </div>
+    </div>
+
+    <div id="video-list">
+      {videos.map((v) => (
+        <VideoRow
+          slug={v.data.urlSlug}
+          title={v.data.title}
+          summary={v.data.summary}
+          tags={v.data.tags}
+          platform={v.data.platform}
+          videoId={v.data.videoId}
+          thumbnailUrl={v.data.thumbnailUrl}
+          uploadDate={v.data.uploadDate}
+        />
+      ))}
+    </div>
+
+    <p id="empty-state" hidden>No videos match your search yet.</p>
+  </main>
+  <SiteFooter />
+</Layout>
+
+<script>
+  const searchInput = document.getElementById('search') as HTMLInputElement;
+  const filters = document.getElementById('filters');
+  const rows = Array.from(document.querySelectorAll('#video-list .row')) as HTMLElement[];
+  const emptyState = document.getElementById('empty-state') as HTMLElement;
+
+  let activeTag = new URLSearchParams(location.search).get('tag') ?? 'all';
+  if (activeTag !== 'all') {
+    filters?.querySelectorAll('.chip').forEach((c) => {
+      const el = c as HTMLElement;
+      el.classList.toggle('active', el.dataset.tag === activeTag);
+    });
+  }
+
+  function applyFilters() {
+    const query = searchInput.value.trim().toLowerCase();
+    let visibleCount = 0;
+
+    rows.forEach((row) => {
+      const rowTags = row.dataset.tags?.split('|') ?? [];
+      const matchesTag = activeTag === 'all' || rowTags.includes(activeTag);
+      const matchesQuery = !query || (row.dataset.search ?? '').includes(query);
+      const show = matchesTag && matchesQuery;
+      row.style.display = show ? '' : 'none';
+      if (show) visibleCount++;
+    });
+
+    emptyState.hidden = visibleCount > 0;
+  }
+
+  filters?.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest('.chip') as HTMLButtonElement | null;
+    if (!btn) return;
+
+    filters.querySelectorAll('.chip').forEach((c) => c.classList.remove('active'));
+    btn.classList.add('active');
+    activeTag = btn.dataset.tag ?? 'all';
+    applyFilters();
+  });
+
+  searchInput?.addEventListener('input', applyFilters);
+</script>
+
+<style>
+  .main {
+    max-width: var(--content-width);
+    margin: 0 auto;
+    padding: 1rem clamp(1.25rem, 4vw, 2rem) 3rem;
+  }
+
+  h1 {
+    font-size: clamp(1.5rem, 3vw, 1.9rem);
+  }
+
+  .count {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin: 0.3rem 0 1.5rem;
+  }
+
+  .controls {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--hairline);
+    margin-bottom: 0.5rem;
+  }
+
+  #search {
+    font-family: var(--font-body);
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    color: var(--text);
+    padding: 0.6rem 0.8rem;
+    font-size: 0.95rem;
+    max-width: 360px;
+    width: 100%;
+  }
+
+  #search:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .chip {
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    background: none;
+    border: 1px solid var(--hairline);
+    padding: 0.4rem 0.9rem;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+
+  .chip:hover {
+    color: var(--text);
+    border-color: var(--text-muted);
+  }
+
+  .chip.active {
+    color: var(--bg);
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  #empty-state {
+    color: var(--text-muted);
+    padding: 2rem 0;
+    text-align: center;
+  }
+</style>

@@ -1,0 +1,276 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import SiteHeader from '../../components/SiteHeader.astro';
+import SiteFooter from '../../components/SiteFooter.astro';
+import VideoPlayer from '../../components/VideoPlayer.astro';
+import { getCollection, type CollectionEntry } from 'astro:content';
+
+export async function getStaticPaths() {
+  const videos = await getCollection('videos');
+  return videos.map((video) => ({
+    params: { slug: video.data.urlSlug },
+    props: { video },
+  }));
+}
+
+interface Props {
+  video: CollectionEntry<'videos'>;
+}
+
+const { video } = Astro.props;
+const { Content } = await video.render();
+const d = video.data;
+
+const embedUrl =
+  d.platform === 'vimeo'
+    ? `https://player.vimeo.com/video/${d.videoId}`
+    : `https://www.youtube-nocookie.com/embed/${d.videoId}`;
+
+const thumbnailUrl =
+  d.thumbnailUrl ?? (d.platform === 'youtube' ? `https://i.ytimg.com/vi/${d.videoId}/hqdefault.jpg` : undefined);
+
+const pageUrl = new URL(`/videos/${d.urlSlug}`, Astro.site).toString();
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'VideoObject',
+    name: d.title,
+    description: d.summary,
+    ...(thumbnailUrl ? { thumbnailUrl } : {}),
+    uploadDate: d.uploadDate,
+    duration: d.durationISO,
+    embedUrl,
+    url: pageUrl,
+    creator: {
+      '@type': 'Person',
+      jobTitle: d.role,
+    },
+    ...(d.client ? { productionCompany: d.client } : {}),
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: new URL('/', Astro.site).toString() },
+      { '@type': 'ListItem', position: 2, name: 'Work', item: new URL('/videos', Astro.site).toString() },
+      { '@type': 'ListItem', position: 3, name: d.title, item: pageUrl },
+    ],
+  },
+];
+---
+
+<Layout title={d.title} description={d.summary} jsonLd={jsonLd} ogImage={thumbnailUrl}>
+  <SiteHeader />
+  <main class="main">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Home</a> / <a href="/videos">Work</a> / <span>{d.title}</span>
+    </nav>
+
+    <VideoPlayer platform={d.platform} videoId={d.videoId} title={d.title} />
+
+    <div class="detail-grid">
+      <div class="body">
+        <h1>{d.title}</h1>
+        <div class="prose">
+          <Content />
+        </div>
+
+        {d.stills.length > 0 && (
+          <section class="stills" aria-label="Production stills">
+            <h2>Stills</h2>
+            <div class="stills-grid">
+              {d.stills.map((still) => (
+                <figure>
+                  <img src={still.src} alt={still.alt} loading="lazy" />
+                  {still.caption && <figcaption>{still.caption}</figcaption>}
+                </figure>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+
+      <aside class="facts">
+        <dl>
+          <dt>Role</dt>
+          <dd>{d.role}</dd>
+
+          {d.projectName && (
+            <>
+              <dt>Project</dt>
+              <dd>{d.projectName}</dd>
+            </>
+          )}
+
+          {d.client && (
+            <>
+              <dt>Client</dt>
+              <dd>{d.client}</dd>
+            </>
+          )}
+
+          <dt>Date</dt>
+          <dd>{new Date(d.uploadDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}</dd>
+
+          <dt>Tags</dt>
+          <dd class="tags">
+            {d.tags.map((t) => <a href={`/videos?tag=${encodeURIComponent(t.toLowerCase())}`}>{t}</a>)}
+          </dd>
+        </dl>
+
+        <a class="back" href="/videos">← Back to all work</a>
+      </aside>
+    </div>
+  </main>
+  <SiteFooter />
+</Layout>
+
+<style>
+  .main {
+    max-width: var(--content-width);
+    margin: 0 auto;
+    padding: 0 clamp(1.25rem, 4vw, 2rem) 3rem;
+  }
+
+  .breadcrumb {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    padding: 1rem 0;
+  }
+
+  .breadcrumb a:hover {
+    color: var(--accent);
+  }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 260px;
+    gap: 3rem;
+    margin-top: 2rem;
+  }
+
+  @media (max-width: 720px) {
+    .detail-grid {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+  }
+
+  .body h1 {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    margin-bottom: 1rem;
+  }
+
+  .prose {
+    color: var(--text-muted);
+    max-width: 68ch;
+    font-size: 1rem;
+  }
+
+  .prose :global(p) {
+    margin: 0 0 1rem;
+  }
+
+  .stills {
+    margin-top: 2.5rem;
+    max-width: 68ch;
+  }
+
+  .stills h2 {
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--tag-muted);
+    margin-bottom: 1rem;
+  }
+
+  .stills-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .stills-grid figure {
+    margin: 0;
+  }
+
+  .stills-grid img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border: 1px solid var(--hairline);
+  }
+
+  .stills-grid figcaption {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 0.4rem;
+  }
+
+  @media (max-width: 480px) {
+    .stills-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .facts {
+    border-left: 1px solid var(--hairline);
+    padding-left: 1.5rem;
+  }
+
+  @media (max-width: 720px) {
+    .facts {
+      border-left: none;
+      border-top: 1px solid var(--hairline);
+      padding-left: 0;
+      padding-top: 1.5rem;
+    }
+  }
+
+  dl {
+    margin: 0;
+  }
+
+  dt {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--tag-muted);
+    margin-top: 1rem;
+  }
+
+  dt:first-child {
+    margin-top: 0;
+  }
+
+  dd {
+    margin: 0.25rem 0 0;
+    font-size: 0.95rem;
+  }
+
+  dd.tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  dd.tags a {
+    border: 1px solid var(--hairline);
+    padding: 0.15rem 0.5rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  dd.tags a:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .back {
+    display: inline-block;
+    margin-top: 2rem;
+    font-size: 0.9rem;
+    color: var(--accent);
+  }
+</style>

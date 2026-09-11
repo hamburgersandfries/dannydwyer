@@ -1,0 +1,367 @@
+---
+// This page is only reachable if Cloudflare Access has already authenticated
+// the visitor (see README.md → "Set up admin access"). No app-level login is
+// implemented here on purpose — Access handles auth at the edge, for both
+// of the two users, before this HTML is ever served.
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Admin" description="Site content admin." noindex={true}>
+  <main class="admin">
+    <h1>Site Admin</h1>
+    <p class="hint">Changes here commit directly to the site's GitHub repo and trigger a live redeploy (usually live within a minute or two).</p>
+
+    <nav class="tabs">
+      <button class="tab active" data-tab="add-video">Add Video</button>
+      <button class="tab" data-tab="edit-video">Edit Video</button>
+      <button class="tab" data-tab="settings">Site Settings</button>
+      <button class="tab" data-tab="contact">Contact Page</button>
+    </nav>
+
+    <section data-panel="add-video" class="panel">
+      <form id="video-form">
+        <label>Title <input name="title" required /></label>
+        <div class="row">
+          <label>Platform
+            <select name="platform">
+              <option value="youtube">YouTube</option>
+              <option value="vimeo">Vimeo</option>
+            </select>
+          </label>
+          <label>Video ID
+            <input name="videoId" required placeholder="YouTube: dQw4w9WgXcQ · Vimeo: 76979871" />
+          </label>
+        </div>
+        <label>Thumbnail URL (required for Vimeo; optional override for YouTube)
+          <input name="thumbnailUrl" placeholder="https://…" />
+        </label>
+        <label>Short Summary (150–160 characters, used for SEO & search snippets)
+          <textarea name="summary" maxlength="200" rows="2" required></textarea>
+        </label>
+        <label>Full Description (shown on the video's page)
+          <textarea name="description" rows="5"></textarea>
+        </label>
+        <div class="row">
+          <label>Role <input name="role" value="Director of Photography" /></label>
+          <label>Upload / Shoot Date <input name="uploadDate" type="date" required /></label>
+        </div>
+        <div class="row">
+          <label>Project Name <input name="projectName" /></label>
+          <label>Client <input name="client" /></label>
+        </div>
+        <label>Tags (comma-separated) <input name="tags" placeholder="narrative, 35mm, night exterior" /></label>
+        <label>Still images — one per line, as: image URL | alt text | caption (caption optional)
+          <textarea name="stills" rows="3" placeholder="/images/videos/midnight-harbor/01.jpg | Dock lamps lighting the wide shot | Night one, camera A"></textarea>
+        </label>
+        <label>URL slug (leave blank to auto-generate from title)
+          <input name="slug" placeholder="midnight-harbor" />
+        </label>
+        <label class="checkbox"><input type="checkbox" name="featured" /> Feature this on the home page</label>
+        <button type="submit">Publish Video</button>
+        <p class="status" id="video-status"></p>
+      </form>
+    </section>
+
+    <section data-panel="edit-video" class="panel" hidden>
+      <label>Choose a video
+        <select id="video-select"><option>Loading…</option></select>
+      </label>
+      <p class="hint">Editing loads the video's raw file. Edit the text, then click Save — it reuses the Add Video form above.</p>
+      <textarea id="raw-editor" rows="16"></textarea>
+      <button id="save-raw">Save Changes</button>
+      <p class="status" id="edit-status"></p>
+    </section>
+
+    <section data-panel="settings" class="panel" hidden>
+      <form id="settings-form">
+        <label>Name <input name="name" /></label>
+        <label>Role / Title <input name="role" /></label>
+        <label>Tagline <input name="tagline" /></label>
+        <label>Intro Copy (home page) <textarea name="introCopy" rows="4"></textarea></label>
+        <label>Email <input name="email" type="email" /></label>
+        <label>Location <input name="location" /></label>
+        <label>Instagram URL <input name="instagram" /></label>
+        <label>IMDb URL <input name="imdb" /></label>
+        <label>Vimeo URL <input name="vimeo" /></label>
+        <label>Home page featured video slug <input name="homeReelSlug" /></label>
+        <button type="submit">Save Settings</button>
+        <p class="status" id="settings-status"></p>
+      </form>
+    </section>
+
+    <section data-panel="contact" class="panel" hidden>
+      <p class="hint">Edit the Contact page markdown below (the top frontmatter block controls the page title and SEO description; everything after it is the page body).</p>
+      <textarea id="contact-editor" rows="16"></textarea>
+      <button id="save-contact">Save Contact Page</button>
+      <p class="status" id="contact-status"></p>
+    </section>
+  </main>
+</Layout>
+
+<script>
+  const tabs = document.querySelectorAll('.tab');
+  const panels = document.querySelectorAll('.panel');
+
+  tabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      tabs.forEach((t) => t.classList.remove('active'));
+      tab.classList.add('active');
+      const target = (tab as HTMLElement).dataset.tab;
+      panels.forEach((p) => {
+        (p as HTMLElement).hidden = (p as HTMLElement).dataset.panel !== target;
+      });
+      if (target === 'edit-video') loadVideoList();
+      if (target === 'settings') loadSettings();
+      if (target === 'contact') loadContact();
+    });
+  });
+
+  // --- Add Video ---
+  const videoForm = document.getElementById('video-form') as HTMLFormElement;
+  videoForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const status = document.getElementById('video-status')!;
+    status.textContent = 'Publishing…';
+    const fd = new FormData(videoForm);
+    const payload: Record<string, any> = Object.fromEntries(fd.entries());
+    payload.tags = String(payload.tags || '').split(',').map((t) => t.trim()).filter(Boolean);
+    payload.featured = fd.get('featured') === 'on';
+    payload.stills = String(payload.stills || '')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const [src, alt, caption] = line.split('|').map((p) => p.trim());
+        return { src, alt: alt || '', ...(caption ? { caption } : {}) };
+      });
+
+    const res = await fetch('/api/videos', { method: 'POST', body: JSON.stringify(payload) });
+    const data = await res.json();
+    status.textContent = res.ok ? `Published: /videos/${data.slug}` : `Error: ${data.error}`;
+    if (res.ok) videoForm.reset();
+  });
+
+  // --- Edit Video ---
+  async function loadVideoList() {
+    const select = document.getElementById('video-select') as HTMLSelectElement;
+    select.innerHTML = '<option>Loading…</option>';
+    const res = await fetch('/api/videos');
+    const data = await res.json();
+    select.innerHTML = data.slugs.map((s: string) => `<option value="${s}">${s}</option>`).join('');
+    select.onchange = () => loadRaw(select.value);
+    if (data.slugs[0]) loadRaw(data.slugs[0]);
+  }
+
+  async function loadRaw(slug: string) {
+    const res = await fetch(`/api/videos?slug=${encodeURIComponent(slug)}`);
+    const data = await res.json();
+    (document.getElementById('raw-editor') as HTMLTextAreaElement).value = data.raw ?? '';
+  }
+
+  document.getElementById('save-raw')?.addEventListener('click', async () => {
+    const status = document.getElementById('edit-status')!;
+    const select = document.getElementById('video-select') as HTMLSelectElement;
+    const raw = (document.getElementById('raw-editor') as HTMLTextAreaElement).value;
+
+    // Parse the frontmatter back out of the raw markdown so we can reuse the /api/videos POST handler.
+    const match = raw.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+    if (!match) { status.textContent = 'Could not parse frontmatter.'; return; }
+    const [, fm, body] = match;
+    const fields: Record<string, any> = { description: body.trim(), slug: select.value };
+    fm.split('\n').forEach((line) => {
+      if (line.trim().startsWith('#') || !line.trim()) return;
+      const idx = line.indexOf(':');
+      if (idx === -1) return;
+      const key = line.slice(0, idx).trim();
+      const value = line.slice(idx + 1).trim();
+      if (value.startsWith('[') || value.startsWith('{')) {
+        try {
+          fields[key] = JSON.parse(value);
+        } catch {
+          fields[key] = [];
+        }
+      } else if (value === 'true' || value === 'false') {
+        fields[key] = value === 'true';
+      } else {
+        fields[key] = value.replace(/^"|"$/g, '');
+      }
+    });
+    // The Add Video form's /api/videos handler expects `stills` as an array
+    // of objects and `tags` as an array of strings — both already parsed above
+    // since toFrontmatter writes them as JSON.
+
+    status.textContent = 'Saving…';
+    const res = await fetch('/api/videos', { method: 'POST', body: JSON.stringify(fields) });
+    const data = await res.json();
+    status.textContent = res.ok ? 'Saved.' : `Error: ${data.error}`;
+  });
+
+  // --- Settings ---
+  async function loadSettings() {
+    const res = await fetch('/api/settings');
+    const data = await res.json();
+    const form = document.getElementById('settings-form') as HTMLFormElement;
+    if (!data.settings) return;
+    const s = data.settings;
+    (form.elements.namedItem('name') as HTMLInputElement).value = s.name ?? '';
+    (form.elements.namedItem('role') as HTMLInputElement).value = s.role ?? '';
+    (form.elements.namedItem('tagline') as HTMLInputElement).value = s.tagline ?? '';
+    (form.elements.namedItem('introCopy') as HTMLTextAreaElement).value = s.introCopy ?? '';
+    (form.elements.namedItem('email') as HTMLInputElement).value = s.email ?? '';
+    (form.elements.namedItem('location') as HTMLInputElement).value = s.location ?? '';
+    (form.elements.namedItem('instagram') as HTMLInputElement).value = s.socials?.instagram ?? '';
+    (form.elements.namedItem('imdb') as HTMLInputElement).value = s.socials?.imdb ?? '';
+    (form.elements.namedItem('vimeo') as HTMLInputElement).value = s.socials?.vimeo ?? '';
+    (form.elements.namedItem('homeReelSlug') as HTMLInputElement).value = s.homeReelSlug ?? '';
+  }
+
+  document.getElementById('settings-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const status = document.getElementById('settings-status')!;
+    const form = e.target as HTMLFormElement;
+    const fd = new FormData(form);
+    const settings = {
+      name: fd.get('name'),
+      role: fd.get('role'),
+      tagline: fd.get('tagline'),
+      introCopy: fd.get('introCopy'),
+      email: fd.get('email'),
+      location: fd.get('location'),
+      socials: {
+        instagram: fd.get('instagram'),
+        imdb: fd.get('imdb'),
+        vimeo: fd.get('vimeo'),
+      },
+      homeReelSlug: fd.get('homeReelSlug'),
+    };
+    status.textContent = 'Saving…';
+    const res = await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ settings }) });
+    status.textContent = res.ok ? 'Saved.' : 'Error saving settings.';
+  });
+
+  // --- Contact page ---
+  async function loadContact() {
+    const res = await fetch('/api/settings');
+    const data = await res.json();
+    (document.getElementById('contact-editor') as HTMLTextAreaElement).value = data.contact ?? '';
+  }
+
+  document.getElementById('save-contact')?.addEventListener('click', async () => {
+    const status = document.getElementById('contact-status')!;
+    const contactMarkdown = (document.getElementById('contact-editor') as HTMLTextAreaElement).value;
+    status.textContent = 'Saving…';
+    const res = await fetch('/api/settings', { method: 'POST', body: JSON.stringify({ contactMarkdown }) });
+    status.textContent = res.ok ? 'Saved.' : 'Error saving contact page.';
+  });
+</script>
+
+<style>
+  .admin {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 3rem clamp(1.25rem, 4vw, 2rem) 5rem;
+  }
+
+  h1 {
+    font-size: 1.6rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .hint {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--hairline);
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+  }
+
+  .tab {
+    font-family: var(--font-body);
+    background: none;
+    border: 1px solid var(--hairline);
+    color: var(--text-muted);
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+
+  .tab.active {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+  }
+
+  form, .panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  label.checkbox {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  input, textarea, select {
+    font-family: var(--font-body);
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    color: var(--text);
+    padding: 0.6rem 0.7rem;
+    font-size: 0.95rem;
+  }
+
+  input:focus, textarea:focus, select:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  #raw-editor, #contact-editor {
+    font-family: 'Menlo', 'Consolas', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+
+  button {
+    align-self: flex-start;
+    font-family: var(--font-body);
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    padding: 0.7rem 1.4rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+
+  button:hover {
+    background: var(--accent-dim);
+  }
+
+  .status {
+    font-size: 0.85rem;
+    color: var(--accent);
+    min-height: 1.2em;
+  }
+</style>

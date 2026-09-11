@@ -1,0 +1,84 @@
+---
+import Layout from '../layouts/Layout.astro';
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import VideoPlayer from '../components/VideoPlayer.astro';
+import { getCollection } from 'astro:content';
+import { site } from '../data/site';
+
+const videos = await getCollection('videos');
+const reel =
+  videos.find((v) => v.data.urlSlug === site.homeReelSlug) ??
+  videos.find((v) => v.data.featured) ??
+  videos[0];
+
+const jsonLd = reel
+  ? [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'VideoObject',
+        name: reel.data.title,
+        description: reel.data.summary,
+        thumbnailUrl:
+          reel.data.thumbnailUrl ??
+          (reel.data.platform === 'youtube' ? `https://i.ytimg.com/vi/${reel.data.videoId}/hqdefault.jpg` : undefined),
+        uploadDate: reel.data.uploadDate,
+        duration: reel.data.durationISO,
+        embedUrl:
+          reel.data.platform === 'vimeo'
+            ? `https://player.vimeo.com/video/${reel.data.videoId}`
+            : `https://www.youtube-nocookie.com/embed/${reel.data.videoId}`,
+      },
+    ]
+  : [];
+---
+
+<Layout
+  title="Home"
+  description={site.tagline}
+  jsonLd={jsonLd}
+>
+  <SiteHeader />
+  <main class="main">
+    {reel && <VideoPlayer platform={reel.data.platform} videoId={reel.data.videoId} title={reel.data.title} />}
+
+    <section class="intro">
+      <h1>{site.role}</h1>
+      <p>{site.introCopy}</p>
+      <a class="cta" href="/videos">View the work &nbsp;→</a>
+    </section>
+  </main>
+  <SiteFooter />
+</Layout>
+
+<style>
+  .main {
+    max-width: var(--content-width);
+    margin: 0 auto;
+    padding: 0 clamp(1.25rem, 4vw, 2rem) 2rem;
+  }
+
+  .intro {
+    max-width: 62ch;
+    margin: 3rem 0 1rem;
+  }
+
+  .intro h1 {
+    font-size: clamp(1.6rem, 3vw, 2.1rem);
+    margin-bottom: 1rem;
+  }
+
+  .intro p {
+    color: var(--text-muted);
+    font-size: 1.05rem;
+  }
+
+  .cta {
+    display: inline-block;
+    margin-top: 1rem;
+    font-size: 0.95rem;
+    border-bottom: 1px solid var(--accent);
+    color: var(--accent);
+    padding-bottom: 0.15rem;
+  }
+</style>

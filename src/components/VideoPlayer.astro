@@ -1,0 +1,58 @@
+---
+interface Props {
+  platform: 'youtube' | 'vimeo';
+  videoId: string;
+  title: string;
+}
+const { platform, videoId, title } = Astro.props;
+
+const src =
+  platform === 'vimeo'
+    ? `https://player.vimeo.com/video/${videoId}?title=0&byline=0&portrait=0`
+    : `https://www.youtube-nocookie.com/embed/${videoId}`;
+
+const allow =
+  platform === 'vimeo'
+    ? 'autoplay; fullscreen; picture-in-picture; clipboard-write'
+    : 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+---
+
+<div class="frame">
+  <div class="letterbox top"></div>
+  <div class="embed-wrap">
+    <iframe
+      src={src}
+      title={title}
+      loading="lazy"
+      allow={allow}
+      allowfullscreen
+    ></iframe>
+  </div>
+  <div class="letterbox bottom"></div>
+</div>
+
+<style>
+  .frame {
+    border: 1px solid var(--hairline);
+  }
+
+  .letterbox {
+    height: 6px;
+    background: var(--surface);
+  }
+
+  .embed-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #000;
+  }
+
+  .embed-wrap iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+</style>

@@ -1,0 +1,55 @@
+---
+import { site } from '../data/site';
+const path = Astro.url.pathname;
+const isActive = (href: string) => path === href || (href !== '/' && path.startsWith(href));
+---
+
+<header class="header">
+  <a class="wordmark" href="/">{site.name}</a>
+  <nav class="nav">
+    <a href="/" class:list={{ active: isActive('/') && path === '/' }}>Home</a>
+    <a href="/videos" class:list={{ active: isActive('/videos') }}>Work</a>
+    <a href="/contact" class:list={{ active: isActive('/contact') }}>Contact</a>
+  </nav>
+</header>
+
+<style>
+  .header {
+    max-width: var(--content-width);
+    margin: 0 auto;
+    padding: 2rem clamp(1.25rem, 4vw, 2rem) 1.5rem;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .wordmark {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    letter-spacing: 0.01em;
+  }
+
+  .nav {
+    display: flex;
+    gap: 1.75rem;
+    font-size: 0.9rem;
+  }
+
+  .nav a {
+    padding-bottom: 0.2rem;
+    border-bottom: 1px solid transparent;
+    color: var(--text-muted);
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .nav a:hover {
+    color: var(--text);
+  }
+
+  .nav a.active {
+    color: var(--text);
+    border-bottom-color: var(--accent);
+  }
+</style>

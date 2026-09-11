@@ -1,0 +1,47 @@
+---
+import { site } from '../data/site';
+const year = new Date().getFullYear();
+const socialLinks = Object.entries(site.socials).filter(([, url]) => url);
+---
+
+<footer class="footer">
+  <div class="footer-inner">
+    <span>&copy; {year} {site.name}</span>
+    <div class="links">
+      <a href={`mailto:${site.email}`}>{site.email}</a>
+      {socialLinks.map(([name, url]) => (
+        <a href={url} target="_blank" rel="noopener noreferrer">{name}</a>
+      ))}
+    </div>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    border-top: 1px solid var(--hairline);
+    margin-top: 4rem;
+  }
+
+  .footer-inner {
+    max-width: var(--content-width);
+    margin: 0 auto;
+    padding: 1.5rem clamp(1.25rem, 4vw, 2rem);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  .links {
+    display: flex;
+    gap: 1.5rem;
+    text-transform: capitalize;
+  }
+
+  .links a:hover {
+    color: var(--accent);
+  }
+</style>

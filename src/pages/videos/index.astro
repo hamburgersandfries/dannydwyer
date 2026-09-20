@@ -40,23 +40,6 @@ const jsonLd = [
     <h1>Work</h1>
 
     <div class="work-layout">
-      <div class="video-area">
-        <div id="video-list">
-          {videos.map((v, i) => (
-            <VideoCard
-              slug={v.data.urlSlug}
-              title={v.data.title}
-              summary={v.data.summary}
-              tags={v.data.tags}
-              thumbnailUrl={thumbnails[i]}
-              uploadDate={v.data.uploadDate}
-            />
-          ))}
-        </div>
-
-        <p id="empty-state" hidden>No videos match your search yet.</p>
-      </div>
-
       <aside class="sidebar">
         <p class="description">
           Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et
@@ -105,6 +88,23 @@ const jsonLd = [
           </div>
         </div>
       </aside>
+
+      <div class="video-area">
+        <div id="video-list">
+          {videos.map((v, i) => (
+            <VideoCard
+              slug={v.data.urlSlug}
+              title={v.data.title}
+              summary={v.data.summary}
+              tags={v.data.tags}
+              thumbnailUrl={thumbnails[i]}
+              uploadDate={v.data.uploadDate}
+            />
+          ))}
+        </div>
+
+        <p id="empty-state" hidden>No videos match your search yet.</p>
+      </div>
     </div>
   </main>
   <SiteFooter />
@@ -231,23 +231,14 @@ const jsonLd = [
 
   .work-layout {
     display: grid;
-    grid-template-columns: repeat(12, 1fr);
+    grid-template-columns: 30% 1fr;
     gap: var(--gutter);
     align-items: start;
   }
 
-  .video-area {
-    grid-column: 1 / 9;
-  }
-
-  .sidebar {
-    grid-column: 9 / 13;
-  }
-
   @media (max-width: 900px) {
-    .video-area,
-    .sidebar {
-      grid-column: 1 / -1;
+    .work-layout {
+      grid-template-columns: 1fr;
     }
   }
 

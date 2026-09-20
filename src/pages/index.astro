@@ -43,9 +43,6 @@ const jsonLd = reel
 >
   <SiteHeader />
 
-  {/* TODO: swap /images/dwyski.png here for the animated GIF once the source video is in */}
-  <div class="motion-banner" role="img" aria-label={`${site.name} — motion banner`}></div>
-
   <main class="main container">
     <div class="grid">
       <div class="col-12">
@@ -83,34 +80,6 @@ const jsonLd = reel
 </Layout>
 
 <style>
-  /* Full-bleed motion banner: locked 50px tall, 100% viewport-width
-     regardless of the site's centered content column, tiling the source
-     image horizontally and scrolling it in a seamless infinite loop.
-     Swap the background-image for the animated GIF once it exists — the
-     mechanics (height, tiling, scroll) don't need to change. */
-  .motion-banner {
-    width: 100%;
-    height: 50px;
-    overflow: hidden;
-    background-color: #000;
-    background-image: url('/images/dwyski.png');
-    background-repeat: repeat-x;
-    background-size: auto 50px;
-    animation: motion-scroll 14s linear infinite;
-  }
-
-  @keyframes motion-scroll {
-    from {
-      background-position-x: 0;
-    }
-    to {
-      /* One tile's rendered width at 50px tall (source is 2100x1200,
-         so 50 * 2100/1200 = 87.5px) — shifting by exactly that loops
-         seamlessly no matter how many tiles fit across the viewport. */
-      background-position-x: -87.5px;
-    }
-  }
-
   .main {
     padding-bottom: 2rem;
   }

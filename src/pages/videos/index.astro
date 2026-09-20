@@ -38,67 +38,74 @@ const jsonLd = [
   <SiteHeader />
   <main class="main container">
     <h1>Work</h1>
-    <p class="description">
-      Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore
-      magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
-      consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
-      pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est
-      laborum.
-    </p>
 
-    <div class="controls">
-      <input
-        id="search"
-        type="search"
-        placeholder="Search by title, client, or keyword…"
-        aria-label="Search videos"
-      />
-
-      <div class="filter-row">
-        <button
-          type="button"
-          id="filters-toggle"
-          class="filters-toggle"
-          aria-expanded="false"
-          aria-controls="filters-panel"
-        >
-          Filters
-          <span id="filters-badge" class="badge" hidden>0</span>
-        </button>
-
-        <div id="selected-chips" class="selected-chips"></div>
-      </div>
-
-      <div id="filters-panel" class="filters-panel" hidden>
-        <div class="filters-panel-tags">
-          {allTags.map((tag) => (
-            <label class="tag-option">
-              <input type="checkbox" name="tag" value={tag.toLowerCase()} />
-              <span>{tag}</span>
-            </label>
+    <div class="work-layout">
+      <div class="video-area">
+        <div id="video-list">
+          {videos.map((v, i) => (
+            <VideoCard
+              slug={v.data.urlSlug}
+              title={v.data.title}
+              summary={v.data.summary}
+              tags={v.data.tags}
+              thumbnailUrl={thumbnails[i]}
+              uploadDate={v.data.uploadDate}
+            />
           ))}
         </div>
-        <div class="filters-panel-actions">
-          <button type="button" id="filters-clear" class="btn btn-ghost">Clear All</button>
-          <button type="button" id="filters-apply" class="btn btn-solid">Apply</button>
-        </div>
+
+        <p id="empty-state" hidden>No videos match your search yet.</p>
       </div>
-    </div>
 
-    <div id="video-list">
-      {videos.map((v, i) => (
-        <VideoCard
-          slug={v.data.urlSlug}
-          title={v.data.title}
-          summary={v.data.summary}
-          tags={v.data.tags}
-          thumbnailUrl={thumbnails[i]}
-          uploadDate={v.data.uploadDate}
-        />
-      ))}
-    </div>
+      <aside class="sidebar">
+        <p class="description">
+          Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et
+          dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex
+          ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu
+          fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt
+          mollit anim id est laborum.
+        </p>
 
-    <p id="empty-state" hidden>No videos match your search yet.</p>
+        <div class="controls">
+          <input
+            id="search"
+            type="search"
+            placeholder="Search by title, client, or keyword…"
+            aria-label="Search videos"
+          />
+
+          <div class="filter-row">
+            <button
+              type="button"
+              id="filters-toggle"
+              class="filters-toggle"
+              aria-expanded="false"
+              aria-controls="filters-panel"
+            >
+              Filters
+              <span id="filters-badge" class="badge" hidden>0</span>
+            </button>
+          </div>
+
+          <div id="selected-chips" class="selected-chips"></div>
+
+          <div id="filters-panel" class="filters-panel" hidden>
+            <div class="filters-panel-tags">
+              {allTags.map((tag) => (
+                <label class="tag-option">
+                  <input type="checkbox" name="tag" value={tag.toLowerCase()} />
+                  <span>{tag}</span>
+                </label>
+              ))}
+            </div>
+            <div class="filters-panel-actions">
+              <button type="button" id="filters-clear" class="btn btn-ghost">Clear All</button>
+              <button type="button" id="filters-apply" class="btn btn-solid">Apply</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
   </main>
   <SiteFooter />
 </Layout>
@@ -219,13 +226,35 @@ const jsonLd = [
 
   h1 {
     font-size: clamp(1.5rem, 3vw, 1.9rem);
+    margin-bottom: 1.25rem;
+  }
+
+  .work-layout {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: var(--gutter);
+    align-items: start;
+  }
+
+  .video-area {
+    grid-column: 1 / 9;
+  }
+
+  .sidebar {
+    grid-column: 9 / 13;
+  }
+
+  @media (max-width: 900px) {
+    .video-area,
+    .sidebar {
+      grid-column: 1 / -1;
+    }
   }
 
   .description {
     color: var(--text-muted);
-    font-size: 1rem;
-    max-width: 68ch;
-    margin: 0.75rem 0 1.75rem;
+    font-size: 0.95rem;
+    margin: 0 0 1.5rem;
   }
 
   .controls {
@@ -234,7 +263,6 @@ const jsonLd = [
     gap: 1rem;
     padding-bottom: 1.5rem;
     border-bottom: 1px solid var(--hairline);
-    margin-bottom: 0.5rem;
   }
 
   #search {
@@ -244,7 +272,6 @@ const jsonLd = [
     color: var(--text);
     padding: 0.6rem 0.8rem;
     font-size: 0.95rem;
-    max-width: 360px;
     width: 100%;
   }
 
@@ -405,15 +432,8 @@ const jsonLd = [
 
   #video-list {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 2rem var(--gutter);
-    padding-top: 1.5rem;
-  }
-
-  @media (max-width: 860px) {
-    #video-list {
-      grid-template-columns: repeat(2, 1fr);
-    }
   }
 
   @media (max-width: 560px) {

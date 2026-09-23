@@ -137,7 +137,7 @@ import Layout from '../../layouts/Layout.astro';
 
     const res = await fetch('/api/videos', { method: 'POST', body: JSON.stringify(payload) });
     const data = await res.json();
-    status.textContent = res.ok ? `Published: /videos/${data.slug}` : `Error: ${data.error}`;
+    status.textContent = res.ok ? `Published: /work/${data.slug}` : `Error: ${data.error}`;
     if (res.ok) videoForm.reset();
   });
 

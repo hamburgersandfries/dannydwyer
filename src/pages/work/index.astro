@@ -23,7 +23,7 @@ const jsonLd = [
     itemListElement: videos.map((v, i) => ({
       '@type': 'ListItem',
       position: i + 1,
-      url: new URL(`/videos/${v.data.urlSlug}`, Astro.site).toString(),
+      url: new URL(`/work/${v.data.urlSlug}`, Astro.site).toString(),
       name: v.data.title,
     })),
   },
@@ -50,10 +50,10 @@ const jsonLd = [
         </p>
 
         <div class="preset-filters">
-          <a class="preset-btn" href="/videos/?tag=branded%20content">Branded Content</a>
-          <a class="preset-btn" href="/videos/?tag=celebrity">Celebrity</a>
-          <a class="preset-btn" href="/videos/?tag=fashion">Fashion</a>
-          <a class="preset-btn" href="/videos/?tag=documentary">Documentary</a>
+          <a class="preset-btn" href="/work/?tag=branded%20content">Branded Content</a>
+          <a class="preset-btn" href="/work/?tag=celebrity">Celebrity</a>
+          <a class="preset-btn" href="/work/?tag=fashion">Fashion</a>
+          <a class="preset-btn" href="/work/?tag=documentary">Documentary</a>
         </div>
 
         <div class="controls">

@@ -67,7 +67,7 @@ Free-text description / body copy goes here as markdown.
 
 Tags are freeform — add as many as are useful (format, genre, technique,
 gear, location type). They power both the tag-chip filter and the search box
-on `/videos`, and prospective clients land on `/videos` from search engines
+on `/work`, and prospective clients land on `/work` from search engines
 or AI answer engines that have indexed a specific tag combination.
 
 To add still images: drop the files under `public/images/videos/<slug>/` and
@@ -212,7 +212,7 @@ visitors.
   `VideoObject` structured data, which is what helps AI tools describe your
   work accurately instead of guessing.
 - Every page carries JSON-LD: a site-wide `Person` schema (who you are),
-  `VideoObject` schema per video, an `ItemList` on `/videos` (the full
+  `VideoObject` schema per video, an `ItemList` on `/work` (the full
   catalog, in one machine-readable block), and a `BreadcrumbList` on each
   video page.
 - `/llms.txt` is generated at build time from the same content as the site —
@@ -220,7 +220,7 @@ visitors.
   [llms.txt](https://llmstxt.org) convention that AI crawlers check the way
   search engines check `robots.txt`. Nothing to maintain separately; it
   updates whenever you add a video.
-- Tag pages are reachable at `/videos?tag=<tag>` and pre-populate the filter
+- Tag pages are reachable at `/work?tag=<tag>` and pre-populate the filter
   and URL, so you can link directly to a filtered view (e.g. from an email
   signature or a client-specific page) and it stays crawlable.
 - After your first deploy, submit your sitemap

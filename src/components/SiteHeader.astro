@@ -20,7 +20,7 @@ const isActive = (href: string) => path === href || (href !== '/' && path.starts
   )}
   <nav class="nav">
     <a href="/" class:list={{ active: isActive('/') && path === '/' }}>Home</a>
-    <a href="/videos" class:list={{ active: isActive('/videos') }}>Work</a>
+    <a href="/work" class:list={{ active: isActive('/work') }}>Work</a>
     <a href="/contact" class:list={{ active: isActive('/contact') }}>Contact</a>
   </nav>
 </header>

@@ -49,6 +49,13 @@ const jsonLd = [
           mollit anim id est laborum.
         </p>
 
+        <div class="preset-filters">
+          <a class="preset-btn" href="/videos/?tag=branded%20content">Branded Content</a>
+          <a class="preset-btn" href="/videos/?tag=celebrity">Celebrity</a>
+          <a class="preset-btn" href="/videos/?tag=fashion">Fashion</a>
+          <a class="preset-btn" href="/videos/?tag=documentary">Documentary</a>
+        </div>
+
         <div class="controls">
           <input
             id="search"
@@ -128,8 +135,19 @@ const jsonLd = [
   // "pending" until Apply commits it (or Clear All zeroes everything).
   let selected = new Set<string>();
 
-  const initialTag = new URLSearchParams(location.search).get('tag');
-  if (initialTag) selected.add(initialTag);
+  const initialTags = new URLSearchParams(location.search).getAll('tag');
+  initialTags.forEach((tag) => selected.add(tag.toLowerCase()));
+
+  // Keep the address bar in sync with the active filters, one repeated
+  // ?tag= param per selected tag, so the current view can always be
+  // copied and shared (or reloaded) as-is.
+  function syncUrl() {
+    const params = new URLSearchParams(location.search);
+    params.delete('tag');
+    selected.forEach((tag) => params.append('tag', tag));
+    const qs = params.toString();
+    history.replaceState(null, '', location.pathname + (qs ? `?${qs}` : ''));
+  }
 
   function syncCheckboxesToSelected() {
     checkboxes.forEach((cb) => {
@@ -188,6 +206,7 @@ const jsonLd = [
     selected = new Set(checkboxes.filter((cb) => cb.checked).map((cb) => cb.value));
     renderChips();
     applyFilters();
+    syncUrl();
     closePanel();
   });
 
@@ -196,6 +215,7 @@ const jsonLd = [
     selected = new Set();
     renderChips();
     applyFilters();
+    syncUrl();
     closePanel();
   });
 
@@ -205,6 +225,7 @@ const jsonLd = [
     selected.delete(chip.dataset.tag);
     renderChips();
     applyFilters();
+    syncUrl();
   });
 
   document.addEventListener('click', (e) => {
@@ -215,6 +236,7 @@ const jsonLd = [
 
   renderChips();
   applyFilters();
+  syncUrl();
   searchInput?.addEventListener('input', applyFilters);
 </script>
 
@@ -231,7 +253,7 @@ const jsonLd = [
 
   .work-layout {
     display: grid;
-    grid-template-columns: 30% 1fr;
+    grid-template-columns: 22.5% 1fr;
     gap: var(--gutter);
     align-items: start;
   }
@@ -242,10 +264,46 @@ const jsonLd = [
     }
   }
 
+  .sidebar {
+    position: sticky;
+    top: 2rem;
+  }
+
+  @media (max-width: 900px) {
+    .sidebar {
+      position: static;
+    }
+  }
+
   .description {
     color: var(--text-muted);
     font-size: 0.95rem;
     margin: 0 0 1.5rem;
+  }
+
+  .preset-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .preset-btn {
+    display: block;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    padding: 0.6rem 1rem;
+    text-align: left;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+
+  .preset-btn:hover {
+    color: var(--accent);
+    border-color: var(--accent);
   }
 
   .controls {

@@ -1,20 +1,79 @@
-// Cloudflare Worker — handles the admin panel's write endpoints.
+// Cloudflare Worker — handles the admin panel's write endpoints and its
+// login gate.
 //
-// Static pages are served directly from dist/ by Cloudflare's asset
-// handling (see wrangler.jsonc); this Worker only runs for requests that
-// don't match a built file, which in practice means /api/videos and
-// /api/settings. It reads and writes markdown/JSON files straight to this
-// GitHub repo via the Contents API — no database.
+// wrangler.jsonc sets `run_worker_first: true`, so every request reaches
+// this Worker before Cloudflare's static asset handling — that's what lets
+// it gate /admin* itself, not just the /api/* write endpoints. Anything not
+// explicitly handled below falls through to env.ASSETS.fetch() at the
+// bottom, which serves the static build from dist/ exactly as before.
 //
-// SECURITY: /admin and /api/* must be protected by Cloudflare Access (see
-// README). GITHUB_TOKEN is a secret set as a Worker environment variable —
-// it is never exposed to the browser.
+// Auth is a single shared password (ADMIN_PASSWORD, a Worker secret) behind
+// an HMAC-signed, HttpOnly session cookie (SESSION_SECRET, another Worker
+// secret) — this is a one-admin portfolio site, not a multi-user app, so a
+// full accounts system would be overkill. GITHUB_TOKEN is a third secret;
+// none of the three are ever exposed to the browser.
 
 export interface Env {
   ASSETS: Fetcher;
   GITHUB_TOKEN: string;
   GITHUB_REPO: string; // e.g. "hamburgersandfries/dannydwyer"
   GITHUB_BRANCH: string; // e.g. "main"
+  ADMIN_PASSWORD: string;
+  SESSION_SECRET: string;
+}
+
+const SESSION_COOKIE = 'session';
+const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
+
+async function hmac(env: Env, message: string): Promise<string> {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    enc.encode(env.SESSION_SECRET),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(message));
+  return btoa(String.fromCharCode(...new Uint8Array(sig)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+function readCookie(request: Request, name: string): string | undefined {
+  const header = request.headers.get('Cookie');
+  if (!header) return undefined;
+  const match = header.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : undefined;
+}
+
+async function isAuthenticated(request: Request, env: Env): Promise<boolean> {
+  const token = readCookie(request, SESSION_COOKIE);
+  if (!token) return false;
+  const [expiryStr, sig] = token.split('.');
+  if (!expiryStr || !sig) return false;
+  const expected = await hmac(env, expiryStr);
+  if (!timingSafeEqual(sig, expected)) return false;
+  const expiry = Number(expiryStr);
+  return Number.isFinite(expiry) && Date.now() < expiry;
+}
+
+async function sessionCookieHeader(env: Env): Promise<string> {
+  const expiry = Date.now() + SESSION_TTL_MS;
+  const sig = await hmac(env, String(expiry));
+  return `${SESSION_COOKIE}=${expiry}.${sig}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_TTL_MS / 1000}`;
+}
+
+function clearedCookieHeader(): string {
+  return `${SESSION_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
 }
 
 const VIDEOS_DIR = 'src/content/videos';
@@ -79,8 +138,27 @@ async function putFile(env: Env, path: string, content: string, sha: string | un
   });
 }
 
-const json = (data: unknown, status = 200) =>
-  new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
+const json = (data: unknown, status = 200, extraHeaders: Record<string, string> = {}) =>
+  new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json', ...extraHeaders },
+  });
+
+async function handleLogin(request: Request, env: Env): Promise<Response> {
+  if (!env.ADMIN_PASSWORD) {
+    return json({ error: 'ADMIN_PASSWORD is not configured on this deployment.' }, 500);
+  }
+  const body = (await request.json().catch(() => ({}))) as { password?: string };
+  const password = body.password ?? '';
+  if (!timingSafeEqual(password, env.ADMIN_PASSWORD)) {
+    return json({ error: 'Incorrect password.' }, 401);
+  }
+  return json({ ok: true }, 200, { 'Set-Cookie': await sessionCookieHeader(env) });
+}
+
+function handleLogout(): Response {
+  return json({ ok: true }, 200, { 'Set-Cookie': clearedCookieHeader() });
+}
 
 async function handleVideosGet(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
@@ -184,7 +262,23 @@ async function handleSettingsPost(request: Request, env: Env): Promise<Response>
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const { pathname } = new URL(request.url);
+    const url = new URL(request.url);
+    const { pathname } = url;
+
+    if (pathname === '/api/login' && request.method === 'POST') return handleLogin(request, env);
+    if (pathname === '/api/logout' && request.method === 'POST') return handleLogout();
+
+    const isLoginPage = pathname === '/admin/login' || pathname === '/admin/login/';
+    const isAdminPage = !isLoginPage && (pathname === '/admin' || pathname === '/admin/' || pathname.startsWith('/admin/'));
+    const isProtectedApi = pathname === '/api/videos' || pathname === '/api/settings';
+
+    if (isAdminPage || isProtectedApi) {
+      const authed = await isAuthenticated(request, env);
+      if (!authed) {
+        if (isProtectedApi) return json({ error: 'Unauthorized' }, 401);
+        return Response.redirect(`${url.origin}/admin/login`, 302);
+      }
+    }
 
     if (pathname === '/api/videos') {
       if (request.method === 'GET') return handleVideosGet(request, env);
@@ -196,9 +290,8 @@ export default {
       if (request.method === 'POST') return handleSettingsPost(request, env);
     }
 
-    // Static asset requests are served automatically before this Worker
-    // runs; reaching here means nothing matched, so fall back to the asset
-    // binding's own 404 handling.
+    // Everything else — every static page, image, and the login page
+    // itself — is served straight from the build.
     return env.ASSETS.fetch(request);
   },
 };

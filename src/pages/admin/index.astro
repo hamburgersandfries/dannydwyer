@@ -1,14 +1,17 @@
 ---
-// This page is only reachable if Cloudflare Access has already authenticated
-// the visitor (see README.md → "Set up admin access"). No app-level login is
-// implemented here on purpose — Access handles auth at the edge, for both
-// of the two users, before this HTML is ever served.
+// The Worker (worker/index.ts) gates every request to this page against a
+// signed session cookie before it's ever served — see the `run_worker_first`
+// note in wrangler.jsonc. No auth logic lives here; this page just assumes
+// it's already authenticated.
 import Layout from '../../layouts/Layout.astro';
 ---
 
 <Layout title="Admin" description="Site content admin." noindex={true}>
   <main class="admin">
-    <h1>Site Admin</h1>
+    <div class="admin-header">
+      <h1>Site Admin</h1>
+      <button type="button" id="logout-btn" class="logout-btn">Log Out</button>
+    </div>
     <p class="hint">Changes here commit directly to the site's GitHub repo and trigger a live redeploy (usually live within a minute or two).</p>
 
     <nav class="tabs">
@@ -99,6 +102,11 @@ import Layout from '../../layouts/Layout.astro';
 </Layout>
 
 <script>
+  document.getElementById('logout-btn')?.addEventListener('click', async () => {
+    await fetch('/api/logout', { method: 'POST' });
+    location.href = '/admin/login';
+  });
+
   const tabs = document.querySelectorAll('.tab');
   const panels = document.querySelectorAll('.panel');
 
@@ -262,9 +270,31 @@ import Layout from '../../layouts/Layout.astro';
     padding: 3rem clamp(1.25rem, 4vw, 2rem) 5rem;
   }
 
+  .admin-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
   h1 {
     font-size: 1.6rem;
     margin-bottom: 0.5rem;
+  }
+
+  .logout-btn {
+    font-family: var(--font-body);
+    background: none;
+    border: 1px solid var(--hairline);
+    color: var(--text-muted);
+    padding: 0.4rem 0.9rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+
+  .logout-btn:hover {
+    color: var(--text);
+    border-color: var(--text-muted);
   }
 
   .hint {

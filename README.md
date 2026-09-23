@@ -144,9 +144,11 @@ managed, which is free.
 ## 6. Set up the admin panel
 
 The admin panel at `/admin` commits changes directly to your GitHub repo,
-which triggers an automatic redeploy (live in about a minute). It has no
-login form of its own — access is controlled entirely by **Cloudflare
-Access**, which is free for up to 50 users.
+which triggers an automatic redeploy (live in about a minute). It's gated by
+a single shared password behind a signed session cookie, enforced by the
+Worker itself (`worker/index.ts`) — not by anything you have to configure in
+the Cloudflare dashboard, so it's protected the moment secrets are set,
+before you've touched Zero Trust at all.
 
 **a. Create a GitHub token so the admin panel can write files**
 
@@ -165,22 +167,37 @@ In your Worker's project → **Settings** → **Variables and Secrets**, add:
 | `GITHUB_TOKEN` | the token from step (a) | Secret |
 | `GITHUB_REPO` | `hamburgersandfries/dannydwyer` | Text |
 | `GITHUB_BRANCH` | `main` | Text |
+| `ADMIN_PASSWORD` | a password only you know | Secret |
+| `SESSION_SECRET` | a long random string (e.g. `openssl rand -hex 32`) — never reuse this anywhere else | Secret |
 
-Redeploy after saving so `worker/index.ts` picks up the new variables.
+Redeploy after saving so `worker/index.ts` picks up the new variables. Once
+they're set, visiting `/admin` redirects to `/admin/login`; entering
+`ADMIN_PASSWORD` there sets a 7-day HttpOnly session cookie and unlocks both
+`/admin` and the `/api/videos` / `/api/settings` write endpoints it calls. A
+**Log Out** button on the admin page clears the session immediately.
 
-**c. Gate `/admin` with Cloudflare Access (your two users)**
+If `ADMIN_PASSWORD` or `SESSION_SECRET` is missing, `/admin` still redirects
+to the login page, but logging in will fail — so nothing is ever
+accidentally left open.
 
-1. In the Cloudflare dashboard: **Zero Trust** → **Access** → **Applications**
-   → **Add an application** → **Self-hosted**.
+**c. (Optional) add Cloudflare Access as a second layer**
+
+The password gate above is enough on its own for a single admin. If you
+later want a second layer — e.g. to share access with someone without
+sharing the password, or to require an email-verified login in addition to
+it — you can still put **Cloudflare Access** (free for up to 50 users) in
+front of the same paths:
+
+1. **Zero Trust** → **Access** → **Applications** → **Add an application** →
+   **Self-hosted**.
 2. Application domain: your domain, path `/admin*`.
-3. Under **Policies**, create a policy that allows exactly your two email
-   addresses (Access will send each of you a one-time login code by email —
-   no passwords to manage).
-4. Also protect the API routes the admin panel calls: add a second
-   application (or extend the path) covering `/api/*`, with the same policy,
-   so the write endpoints can't be hit directly by anyone else.
-5. Save. Now visiting `yourdomain.com/admin` prompts for an email login
-   before the page (or the API) ever loads.
+3. Add a second application (or extend the path) covering `/api/*`, same
+   policy.
+4. Under **Policies**, allow exactly the email addresses you want to grant
+   access.
+
+This is additive, not required — the app-level login works whether or not
+Access is configured.
 
 ## 7. Using the admin panel day to day
 
